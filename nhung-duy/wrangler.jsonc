@@ -1,0 +1,17 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "nhung",
+  "main": "src/worker.js",
+  "compatibility_date": "2024-09-23",
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "nhung-duy-db",
+      "database_id": "1feb0d43-f56f-4500-b042-44ed6ebec1e1"
+    }
+  ]
+}

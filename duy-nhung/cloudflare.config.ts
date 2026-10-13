@@ -3,7 +3,7 @@ import { bindings, defineConfig } from "cf/config";
 
 export default defineConfig({
 	worker: {
-		name: "duy-nhung-wedding",
+		name: "duy",
 		compatibilityDate: "2024-09-23",
 		entrypoint: "src/worker.js",
 		env: {

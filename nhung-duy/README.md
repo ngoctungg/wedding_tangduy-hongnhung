@@ -21,7 +21,13 @@ npm start
 ```
 ## Triển khai Cloudflare Worker (qua Cloudflare CLI `cf`)
 
-Dự án đã được cấu hình sẵn cho CLI `cf` mới nhất của Cloudflare kèm cơ sở dữ liệu Edge D1 SQLite:
+Dự án đã được cấu hình cho CLI `cf` của Cloudflare kèm cơ sở dữ liệu Edge D1 SQLite.
+
+Trang `nhung-duy` triển khai Worker `nhung`, binding `DB` trỏ tới `nhung-duy-db` (ID `1feb0d43-f56f-4500-b042-44ed6ebec1e1`).
+
+Trang `duy-nhung` giữ database riêng `wedding-db`, không dùng chung lời chúc hoặc xác nhận tham dự. Database mới của trang này bắt đầu không có dữ liệu; dữ liệu cũ trong `wedding-db` không bị xoá hoặc tự chuyển sang đây. `cloudflare.config.ts` và `wrangler.jsonc` được cấu hình cùng Worker/database; giữ hai file đồng bộ khi thay đổi binding.
+
+Chạy lệnh bên dưới trong thư mục `nhung-duy`. Thay đổi binding chỉ có hiệu lực trên production sau khi triển khai lại từng trang. Worker tự tạo bảng và chỉ mục khi API được gọi lần đầu.
 
 ```bash
 # Chạy máy chủ mô phỏng Edge cục bộ với D1 & Static Assets
@@ -93,7 +99,7 @@ duy-nhung-wedding/
 
 5. **Trang quản trị Sổ Lưu Bút (`/admin`)**:
    - Đường dẫn: `/admin` (hoặc `/admin.html`).
-   - Bảo vệ bằng mã PIN (mặc định: - ngày cưới, cấu hình được qua biến môi trường `ADMIN_PIN`).
+   - Bảo vệ bằng mã PIN (mặc định: `281126` - ngày cưới, cấu hình được qua biến môi trường `ADMIN_PIN`).
    - Thống kê số lượng lời chúc, tìm kiếm tức thì theo tên hoặc nội dung.
    - Nút **Xuất file CSV** (tương thích font tiếng Việt UTF-8 BOM cho Microsoft Excel).
    - Xoá lời chúc rác / spam với hộp thoại xác nhận an toàn.
