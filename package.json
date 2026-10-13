@@ -1,0 +1,11 @@
+{
+  "name": "duy-nhung-wedding",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "dev": "node server.js",
+    "start": "node server.js"
+  }
+}
