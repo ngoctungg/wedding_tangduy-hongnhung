@@ -93,7 +93,7 @@ duy-nhung-wedding/
 
 5. **Trang quản trị Sổ Lưu Bút (`/admin`)**:
    - Đường dẫn: `/admin` (hoặc `/admin.html`).
-   - Bảo vệ bằng mã PIN (mặc định: `281126` - ngày cưới, cấu hình được qua biến môi trường `ADMIN_PIN`).
+   - Bảo vệ bằng mã PIN (mặc định: - ngày cưới, cấu hình được qua biến môi trường `ADMIN_PIN`).
    - Thống kê số lượng lời chúc, tìm kiếm tức thì theo tên hoặc nội dung.
    - Nút **Xuất file CSV** (tương thích font tiếng Việt UTF-8 BOM cho Microsoft Excel).
    - Xoá lời chúc rác / spam với hộp thoại xác nhận an toàn.
