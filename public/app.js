@@ -27,27 +27,135 @@ musicButton.addEventListener('click', async () => {
   }
 });
 syncMusic();
+
+function playOpeningChime() {
+  const AudioContext = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContext) return;
+  try {
+    const context = new AudioContext();
+    const start = context.currentTime;
+    function note(frequency, time, duration, volume, attack) {
+      const oscillator = context.createOscillator();
+      const gain = context.createGain();
+      oscillator.connect(gain);
+      gain.connect(context.destination);
+      oscillator.type = 'sine';
+      oscillator.frequency.setValueAtTime(frequency, time);
+      gain.gain.setValueAtTime(0, context.currentTime);
+      gain.gain.linearRampToValueAtTime(volume, time + attack);
+      gain.gain.exponentialRampToValueAtTime(.001, time + duration);
+      oscillator.start(time);
+      oscillator.stop(time + duration);
+    }
+    [523.25, 659.25, 783.99, 1046.5].forEach((frequency, index) => {
+      note(frequency, start + .1 * index, 1.8, .035 - .005 * index, .01);
+    });
+    [1567.98, 2093].forEach((frequency, index) => {
+      note(frequency, start + .35 + .1 * index, 1.2, .015, .02);
+    });
+    const bass = context.createOscillator();
+    const filter = context.createBiquadFilter();
+    const gain = context.createGain();
+    bass.connect(filter);
+    filter.connect(gain);
+    gain.connect(context.destination);
+    bass.type = 'sine';
+    bass.frequency.setValueAtTime(261.63, start);
+    filter.type = 'lowpass';
+    filter.frequency.value = 400;
+    gain.gain.setValueAtTime(0, start);
+    gain.gain.linearRampToValueAtTime(.025, start + .4);
+    gain.gain.setValueAtTime(.02, start + 1);
+    gain.gain.exponentialRampToValueAtTime(.001, start + 2.5);
+    bass.start(start);
+    bass.stop(start + 2.5);
+    setTimeout(() => {
+      [783.99, 987.77, 1174.66, 1567.98].forEach((frequency, index) => {
+        note(frequency, context.currentTime + .06 * index, .6, .025, .01);
+      });
+    }, 1200);
+    setTimeout(() => { context.close().catch(() => {}); }, 2700);
+  } catch {
+    // The invitation still opens when Web Audio is unavailable.
+  }
+}
+
+function startEnvelopeEffects() {
+  const ring = document.createElement('div');
+  ring.className = 'envelope-seal-ring';
+  ring.setAttribute('aria-hidden', 'true');
+  $('#envelope-card').append(ring);
+  const glow = document.createElement('div');
+  glow.className = 'envelope-glow';
+  $('#envelope-surface').append(glow);
+  for (const decoration of $('#envelope-surface').querySelectorAll('img')) {
+    const flight = document.createElement('div');
+    flight.className = decoration.className;
+    const flower = decoration.cloneNode(false);
+    flower.className = 'envelope-flight';
+    flight.append(flower);
+    $('#envelope-card').append(flight);
+  }
+  envelope.classList.add('opening');
+}
+
+function burstEnvelopeLeaves() {
+  const colors = ['#8bc34a', '#6B8040', '#a5c862', '#c8dfa0'];
+  const burst = document.createElement('div');
+  burst.className = 'envelope-burst';
+  burst.setAttribute('aria-hidden', 'true');
+  const leafSvg = envelope.querySelector('svg');
+  for (let index = 0; index < 32; index++) {
+    const angle = 2 * Math.PI * index / 32 + (Math.random() - .5) * .4;
+    const radius = 25 + 60 * Math.random();
+    const color = colors[Math.floor(Math.random() * colors.length)];
+    const leaf = document.createElement('div');
+    leaf.className = 'envelope-leaf';
+    leaf.style.color = color;
+    leaf.style.fontSize = `${10 + 16 * Math.random()}px`;
+    leaf.style.textShadow = `0 0 10px ${color}`;
+    leaf.style.setProperty('--dx', `${Math.cos(angle) * radius * 5}px`);
+    leaf.style.setProperty('--dy', `${Math.sin(angle) * radius * 5}px`);
+    leaf.style.setProperty('--rot-start', `${(Math.random() - .5) * 30}deg`);
+    leaf.style.setProperty('--rot-end', `${(Math.random() - .5) * 360}deg`);
+    leaf.style.setProperty('--delay', `${.15 * Math.random()}s`);
+    leaf.append(leafSvg.cloneNode(true));
+    burst.append(leaf);
+  }
+  envelope.append(burst);
+}
 async function openInvitation(animate = true) {
   if (opened) return;
   opened = true;
-  invitation.hidden = false;
+  autoAdvanceAt = Infinity;
   window.scrollTo({ top: 0, behavior: 'instant' });
+  music.volume = .5;
   music.play().catch(syncMusic);
   if (animate && !reducedMotion.matches) {
     $('#open-invitation').setAttribute('aria-busy', 'true');
-    envelope.classList.add('opening');
-    await new Promise(resolve => setTimeout(resolve, 1100));
-    envelope.classList.add('fading');
-    await new Promise(resolve => setTimeout(resolve, 500));
+    playOpeningChime();
+    startEnvelopeEffects();
+    setTimeout(() => {
+      burstEnvelopeLeaves();
+      envelope.classList.add('away');
+    }, 500);
+    await new Promise(resolve => setTimeout(resolve, 1300));
   }
   envelope.hidden = true;
-  $('#wedding').setAttribute('tabindex', '-1');
-  $('#wedding').focus({ preventScroll: true });
+  invitation.hidden = false;
+  autoAdvanceAt = Date.now() + 4500;
   renderGallery();
 }
 $('#open-invitation').addEventListener('click', event => {
+  if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
   event.preventDefault();
   openInvitation();
+});
+$('#open-invitation').addEventListener('keydown', event => {
+  if (event.key === ' ' || event.key === 'Spacebar') {
+    event.preventDefault();
+    event.currentTarget.click();
+  }
 });
 
 const parallax = [...document.querySelectorAll('[data-parallax]')];

@@ -1,12 +1,14 @@
 [hidden] { display: none !important; }
 html { background: white; }
 body { margin: 0; }
-#envelope { transition: opacity 500ms ease; }
 #envelope.opening { pointer-events: none; }
-#envelope.opening > .relative { animation: envelope-away 1.1s 450ms ease-in forwards; }
-#envelope.opening [style*="seal-pulse"] { animation: seal-break 600ms ease-out forwards !important; }
-#envelope.opening img { animation: seal-flower-bloom 600ms ease-out forwards; }
-#envelope.fading { opacity: 0; }
+#envelope.opening #envelope-seal { animation: seal-break .5s cubic-bezier(.4, 0, .2, 1) forwards !important; }
+#envelope.away #envelope-departure { animation: envelope-away .8s ease-in forwards; }
+.envelope-seal-ring { position: absolute; left: 50%; top: 50px; width: 56px; height: 56px; border: 3px solid #30530f; border-radius: 50%; z-index: 29; pointer-events: none; transform: translate(-50%, -50%); animation: seal-ring .6s ease-out forwards; }
+.envelope-glow { position: absolute; inset: 0; pointer-events: none; background: radial-gradient(ellipse at center top, rgba(107, 128, 64, .2) 0%, transparent 70%); }
+.envelope-flight { pointer-events: none; display: block; height: auto; max-height: 100%; width: 100%; object-fit: contain; --fly-scale-x: 1; animation: dragon-fly-forward 1.2s ease-in forwards; }
+.envelope-burst { position: absolute; inset: 0; pointer-events: none; z-index: 100; }
+.envelope-leaf { position: absolute; left: 50%; top: 50%; animation: particle-burst 1.4s cubic-bezier(.25, .46, .45, .94) var(--delay) forwards; }
 #music-toggle.paused [class*="animate-"] { animation-play-state: paused; }
 #music-toggle.paused [class*="animate-dance"] { height: 4px !important; }
 #gift-dialog::backdrop { background: #0006; }
