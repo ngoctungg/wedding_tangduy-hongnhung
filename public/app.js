@@ -127,6 +127,7 @@ function burstEnvelopeLeaves() {
 async function openInvitation(animate = true) {
   if (opened) return;
   opened = true;
+  startAutoScroll();
   autoAdvanceAt = Infinity;
   window.scrollTo({ top: 0, behavior: 'instant' });
   music.volume = .5;
@@ -156,6 +157,89 @@ $('#open-invitation').addEventListener('keydown', event => {
     event.preventDefault();
     event.currentTarget.click();
   }
+});
+
+const scrollSpeed = 50;
+const interactiveTarget = 'img, button, a, input, textarea, select, video, audio, dialog, [role="menu"], [role="menuitem"], [role="listbox"], [role="option"], [role="dialog"], [role="alertdialog"], .modal, .dropdown-menu, [data-dropdown], [data-modal]';
+let autoScrollFrame;
+let autoScrollOrigin;
+let autoScrollPaused = false;
+let autoScrollStopped = false;
+let autoScrollTimer;
+let gestureWasPaused = false;
+let ignoreToggleUntil = 0;
+let wheelDistance = 0;
+function pageScroll() {
+  return window.scrollY || document.documentElement.scrollTop || document.body.scrollTop;
+}
+function movePage(top) {
+  window.scrollTo(0, top);
+  if (Math.abs(pageScroll() - top) > 2) {
+    document.documentElement.scrollTop = top;
+    document.body.scrollTop = top;
+  }
+}
+function stopAutoScroll() {
+  autoScrollStopped = true;
+  if (autoScrollFrame) cancelAnimationFrame(autoScrollFrame);
+  autoScrollFrame = undefined;
+}
+function pauseAutoScroll() {
+  if (autoScrollPaused || autoScrollStopped) return;
+  autoScrollPaused = true;
+}
+function resumeAutoScroll() {
+  if (!autoScrollPaused || autoScrollStopped) return;
+  autoScrollOrigin = performance.now() - pageScroll() / scrollSpeed * 1000;
+  autoScrollPaused = false;
+}
+function autoScrollTick(now) {
+  if (autoScrollStopped) return;
+  if (autoScrollPaused) {
+    autoScrollFrame = requestAnimationFrame(autoScrollTick);
+    return;
+  }
+  if (autoScrollOrigin === undefined) autoScrollOrigin = now;
+  movePage((now - autoScrollOrigin) / 1000 * scrollSpeed);
+  if (pageScroll() + innerHeight >= document.documentElement.scrollHeight - 10) {
+    stopAutoScroll();
+    return;
+  }
+  autoScrollFrame = requestAnimationFrame(autoScrollTick);
+}
+function startAutoScroll() {
+  if (reducedMotion.matches || autoScrollFrame || autoScrollTimer) return;
+  autoScrollTimer = setTimeout(() => {
+    if (!autoScrollStopped) autoScrollFrame = requestAnimationFrame(autoScrollTick);
+  }, 2000);
+}
+window.addEventListener('pointerdown', event => {
+  if (!opened) return;
+  gestureWasPaused = autoScrollPaused;
+  if (event.pointerType === 'touch') pauseAutoScroll();
+}, { passive: true });
+window.addEventListener('wheel', event => {
+  if (!opened || autoScrollPaused || autoScrollStopped) return;
+  wheelDistance += Math.abs(event.deltaY);
+  if (wheelDistance >= 50) pauseAutoScroll();
+}, { passive: true });
+window.addEventListener('focusin', event => {
+  if (event.target.matches?.('input, textarea, select, [contenteditable="true"]')) pauseAutoScroll();
+});
+invitation.addEventListener('focusout', () => { ignoreToggleUntil = Date.now() + 400; });
+invitation.addEventListener('click', event => {
+  if (!opened || Date.now() < ignoreToggleUntil) return;
+  const target = event.target;
+  if (target.closest('input, textarea, select, [contenteditable="true"]')) {
+    pauseAutoScroll();
+    return;
+  }
+  if (target.closest(interactiveTarget)) {
+    if (!gestureWasPaused) pauseAutoScroll();
+    return;
+  }
+  if (gestureWasPaused) resumeAutoScroll();
+  else pauseAutoScroll();
 });
 
 const parallax = [...document.querySelectorAll('[data-parallax]')];
@@ -242,7 +326,7 @@ gallery.addEventListener('click', event => {
 }, true);
 renderGallery();
 setInterval(() => {
-  if (opened && !document.hidden && !lightbox.open && !$('#gift-dialog').open && $('#wish-dialog').hidden && !reducedMotion.matches && Date.now() >= autoAdvanceAt) changePhoto(1);
+  if (opened && !document.hidden && !lightbox.open && !$('#gift-dialog').open && $('#wish-dialog').hidden && $('#rsvp-dialog').hidden && !reducedMotion.matches && Date.now() >= autoAdvanceAt) changePhoto(1);
 }, 500);
 
 let zoom = 1;
@@ -322,9 +406,13 @@ lightbox.addEventListener('close', () => { pointers.clear(); autoAdvanceAt = Dat
 const giftDialog = $('#gift-dialog');
 $('[aria-label="Mở hộp mừng cưới"]').addEventListener('click', () => giftDialog.showModal());
 $('[aria-label="Đóng hộp quà mừng"]').addEventListener('click', () => giftDialog.close());
-giftDialog.querySelector('.mt-2').addEventListener('click', () => {
+giftDialog.addEventListener('click', event => {
+  const button = event.target.closest('[data-qr-download]');
+  if (!button) return;
   const link = document.createElement('a');
-  link.href = '/images/wedding-qr.png'; link.download = 'mung-cuoi-dinh-duy.png'; link.click();
+  link.href = button.dataset.qrDownload;
+  link.download = button.dataset.qrFilename;
+  link.click();
 });
 
 const wishDialog = $('#wish-dialog');
@@ -357,6 +445,10 @@ $('#more-wishes').addEventListener('click', () => {
   $('#wish-options').querySelectorAll('p').forEach((p, index) => { p.textContent = choices[(index + Math.floor(wishPage / 2)) % choices.length]; });
 });
 document.addEventListener('keydown', event => {
+  if (!$('#rsvp-dialog').hidden) {
+    if (event.key === 'Escape') closeRsvp();
+    return;
+  }
   if (!wishDialog.hidden) {
     if (event.key === 'Escape') closeWishes();
     if (event.key === 'Tab') {
@@ -405,5 +497,87 @@ $('#guestbook-form').addEventListener('submit', async event => {
     notify('Cảm ơn bạn đã gửi lời chúc!');
   } catch (error) { notify(error.message || 'Không thể gửi lời chúc. Vui lòng thử lại.'); }
   finally { button.disabled = false; }
+});
+const rsvpDialog = $('#rsvp-dialog');
+const rsvpForm = $('#rsvp-form');
+const rsvpSuccess = $('#rsvp-success');
+const rsvpCountWrap = $('#rsvp-count-wrap');
+const rsvpMessageWrap = $('#rsvp-message-wrap');
+const rsvpError = $('#rsvp-error');
+const rsvpSubmit = $('#rsvp-submit');
+const rsvpMinus = $('#rsvp-minus');
+const rsvpPlus = $('#rsvp-plus');
+let guestCount = 1;
+
+function setGuestCount(next) {
+  guestCount = Math.min(30, Math.max(1, next));
+  $('#rsvp-count').textContent = String(guestCount);
+  rsvpMinus.disabled = guestCount <= 1;
+  rsvpPlus.disabled = guestCount >= 30;
+}
+function syncRsvpFields() {
+  const attending = rsvpForm.elements.attending.value;
+  rsvpCountWrap.hidden = attending !== 'yes';
+  rsvpMessageWrap.hidden = attending !== 'yes' && attending !== 'no';
+  rsvpSubmit.disabled = attending !== 'yes' && attending !== 'no';
+}
+function closeRsvp() {
+  rsvpDialog.hidden = true;
+  rsvpForm.hidden = false;
+  rsvpSuccess.hidden = true;
+  rsvpError.hidden = true;
+  rsvpForm.reset();
+  setGuestCount(1);
+  syncRsvpFields();
+  rsvpSubmit.disabled = true;
+  rsvpSubmit.textContent = 'Gửi xác nhận';
+  $('#rsvp-open').focus({ preventScroll: true });
+}
+$('#rsvp-open').addEventListener('click', () => {
+  rsvpDialog.hidden = false;
+  rsvpForm.elements.name.focus();
+});
+$('#rsvp-close').addEventListener('click', closeRsvp);
+$('#rsvp-done').addEventListener('click', closeRsvp);
+rsvpDialog.addEventListener('click', event => {
+  if (event.target === rsvpDialog) closeRsvp();
+});
+rsvpForm.elements.attending.forEach(input => input.addEventListener('change', syncRsvpFields));
+rsvpMinus.addEventListener('click', () => setGuestCount(guestCount - 1));
+rsvpPlus.addEventListener('click', () => setGuestCount(guestCount + 1));
+setGuestCount(1);
+rsvpForm.addEventListener('submit', async event => {
+  event.preventDefault();
+  const attending = rsvpForm.elements.attending.value;
+  if (attending !== 'yes' && attending !== 'no') return;
+  if (rsvpSubmit.disabled) return;
+  rsvpSubmit.disabled = true;
+  rsvpError.hidden = true;
+  rsvpSubmit.textContent = 'Đang gửi...';
+  try {
+    const response = await fetch('/api/rsvp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: rsvpForm.elements.name.value,
+        attending: attending === 'yes',
+        guestCount: attending === 'yes' ? guestCount : undefined,
+        message: rsvpForm.elements.message.value
+      })
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error);
+    $('#rsvp-followup').textContent = attending === 'no'
+      ? 'Cảm ơn bạn đã hồi âm. Chúc bạn thật nhiều niềm vui và sức khỏe!'
+      : 'Rất mong được gặp bạn trong ngày trọng đại!';
+    rsvpForm.hidden = true;
+    rsvpSuccess.hidden = false;
+    $('#rsvp-done').focus();
+  } catch (error) {
+    rsvpError.textContent = error.message || 'Có lỗi xảy ra. Vui lòng thử lại.';
+    rsvpError.hidden = false;
+    rsvpSubmit.disabled = false;
+    rsvpSubmit.textContent = 'Gửi xác nhận';
+  }
 });
 if (new URLSearchParams(location.search).get('open') === '1') openInvitation(false);

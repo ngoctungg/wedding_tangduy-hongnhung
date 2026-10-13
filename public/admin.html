@@ -189,6 +189,13 @@
       color: var(--muted);
       font-size: 14px;
     }
+    .section-title {
+      margin: 28px 0 12px;
+      font-size: 18px;
+      color: var(--primary);
+    }
+    .rsvp-yes { color: #047857; font-weight: 600; }
+    .rsvp-no { color: var(--danger); font-weight: 600; }
 
     /* Modal dialog */
     dialog {
@@ -246,7 +253,7 @@
     <!-- Login -->
     <div id="login-section">
       <h2>Xác thực quyền quản trị</h2>
-      <p>Vui lòng nhập mã PIN quản trị để xem và quản lý danh sách lời chúc.</p>
+      <p>Vui lòng nhập mã PIN quản trị để xem lời chúc và xác nhận tham dự.</p>
       <form id="login-form">
         <div class="form-group">
           <label for="admin-pin">Mã PIN quản trị</label>
@@ -287,13 +294,39 @@
           </tbody>
         </table>
       </div>
+
+      <h2 class="section-title">Xác nhận tham dự</h2>
+      <div class="toolbar">
+        <span class="stats-badge" id="rsvp-stats">0 phản hồi</span>
+        <button id="btn-export-rsvp" class="btn btn-outline" type="button">📥 Xuất CSV</button>
+      </div>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 40px; text-align: center;">#</th>
+              <th>Tên</th>
+              <th>Tham dự</th>
+              <th>Số khách</th>
+              <th>Lời nhắn</th>
+              <th>Thời gian</th>
+              <th style="text-align: right;">Xoá</th>
+            </tr>
+          </thead>
+          <tbody id="rsvp-body">
+            <tr>
+              <td colspan="7" class="empty-state">Đang tải dữ liệu...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
 
   <!-- Delete Confirmation Modal -->
   <dialog id="delete-modal">
     <h3>Xác nhận xoá lời chúc</h3>
-    <p>Bạn có chắc chắn muốn xoá lời chúc của <strong id="delete-author"></strong> không? Hành động này không thể hoàn tác.</p>
+    <p>Bạn có chắc chắn muốn xoá <span id="delete-kind">lời chúc</span> của <strong id="delete-author"></strong> không? Hành động này không thể hoàn tác.</p>
     <div class="modal-actions">
       <button id="btn-cancel-delete" class="btn btn-outline">Huỷ</button>
       <button id="btn-confirm-delete" class="btn btn-danger">Xoá vĩnh viễn</button>
@@ -304,7 +337,9 @@
 
   <script>
     let commentsList = [];
+    let rsvpList = [];
     let deleteTargetId = null;
+    let deleteKind = 'comment';
 
     const loginSection = document.getElementById('login-section');
     const dashboardSection = document.getElementById('dashboard-section');
@@ -316,6 +351,10 @@
     const searchInput = document.getElementById('search-input');
     const commentsBody = document.getElementById('comments-body');
     const statsCount = document.getElementById('stats-count');
+    const rsvpBody = document.getElementById('rsvp-body');
+    const rsvpStats = document.getElementById('rsvp-stats');
+    const btnExportRsvp = document.getElementById('btn-export-rsvp');
+    const deleteKindLabel = document.getElementById('delete-kind');
     const deleteModal = document.getElementById('delete-modal');
     const deleteAuthor = document.getElementById('delete-author');
     const btnConfirmDelete = document.getElementById('btn-confirm-delete');
@@ -399,8 +438,46 @@
       return String(str || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
     }
 
-    window.openDeleteModal = function(id, author) {
+    async function fetchRsvps() {
+      try {
+        const pin = getPin();
+        const res = await fetch('/api/rsvp', { headers: { 'x-admin-pin': pin, 'Authorization': `Bearer ${pin}` } });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Không thể lấy danh sách xác nhận');
+        rsvpList = data;
+        renderRsvps();
+      } catch (err) {
+        showToast(err.message);
+      }
+    }
+
+    function renderRsvps() {
+      const coming = rsvpList.filter(item => item.attending);
+      const guests = coming.reduce((sum, item) => sum + (Number(item.guestCount) || 0), 0);
+      rsvpStats.textContent = `${rsvpList.length} phản hồi · ${guests} khách sẽ đến · ${rsvpList.length - coming.length} không đến`;
+      if (rsvpList.length === 0) {
+        rsvpBody.innerHTML = '<tr><td colspan="7" class="empty-state">Chưa có xác nhận tham dự nào.</td></tr>';
+        return;
+      }
+      rsvpBody.innerHTML = rsvpList.map((item, index) => `
+        <tr>
+          <td style="text-align: center; color: var(--muted); font-size: 12px;">${index + 1}</td>
+          <td class="col-author">${escapeHtml(item.name)}</td>
+          <td class="${item.attending ? 'rsvp-yes' : 'rsvp-no'}">${item.attending ? 'Sẽ đến' : 'Không đến'}</td>
+          <td>${item.attending ? escapeHtml(item.guestCount) : '—'}</td>
+          <td class="col-message">${escapeHtml(item.message) || '—'}</td>
+          <td class="col-time">${formatTime(item.createdAt || item.created_at)}</td>
+          <td class="col-actions">
+            <button class="btn btn-danger btn-sm" type="button" data-delete-rsvp="${escapeHtml(item.id)}" data-name="${escapeHtml(item.name)}">Xoá</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    window.openDeleteModal = function(id, author, kind = 'comment') {
       deleteTargetId = id;
+      deleteKind = kind;
+      deleteKindLabel.textContent = kind === 'rsvp' ? 'xác nhận tham dự' : 'lời chúc';
       deleteAuthor.textContent = author;
       deleteModal.showModal();
     };
@@ -415,7 +492,8 @@
       btnConfirmDelete.disabled = true;
       try {
         const pin = getPin();
-        const res = await fetch(`/api/comments?id=${encodeURIComponent(deleteTargetId)}`, {
+        const endpoint = deleteKind === 'rsvp' ? '/api/rsvp' : '/api/comments';
+        const res = await fetch(`${endpoint}?id=${encodeURIComponent(deleteTargetId)}`, {
           method: 'DELETE',
           headers: {
             'x-admin-pin': pin,
@@ -425,9 +503,15 @@
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Xoá thất bại');
 
-        commentsList = commentsList.filter(x => x.id !== deleteTargetId);
-        renderTable();
-        showToast('Đã xoá lời chúc thành công');
+        if (deleteKind === 'rsvp') {
+          rsvpList = rsvpList.filter(x => x.id !== deleteTargetId);
+          renderRsvps();
+          showToast('Đã xoá xác nhận thành công');
+        } else {
+          commentsList = commentsList.filter(x => x.id !== deleteTargetId);
+          renderTable();
+          showToast('Đã xoá lời chúc thành công');
+        }
         deleteModal.close();
       } catch (err) {
         showToast(err.message);
@@ -446,7 +530,7 @@
       loginSection.style.display = 'none';
       dashboardSection.style.display = 'block';
       btnLogout.style.display = 'inline-flex';
-      await fetchComments();
+      await Promise.all([fetchComments(), fetchRsvps()]);
     });
 
     btnLogout.addEventListener('click', () => {
@@ -459,7 +543,7 @@
     });
 
     btnRefresh.addEventListener('click', () => {
-      fetchComments();
+      Promise.all([fetchComments(), fetchRsvps()]);
       showToast('Đã cập nhật danh sách');
     });
 
@@ -493,8 +577,35 @@
       loginSection.style.display = 'none';
       dashboardSection.style.display = 'block';
       btnLogout.style.display = 'inline-flex';
-      fetchComments();
+      Promise.all([fetchComments(), fetchRsvps()]);
     }
+
+    rsvpBody.addEventListener('click', event => {
+      const button = event.target.closest('[data-delete-rsvp]');
+      if (!button) return;
+      openDeleteModal(button.dataset.deleteRsvp, button.dataset.name, 'rsvp');
+    });
+
+    btnExportRsvp.addEventListener('click', () => {
+      if (rsvpList.length === 0) {
+        showToast('Không có dữ liệu để xuất');
+        return;
+      }
+      let csvContent = '\uFEFF"STT","Họ tên","Tham dự","Số khách","Lời nhắn","Thời gian"\n';
+      rsvpList.forEach((item, i) => {
+        const name = (item.name || '').replace(/"/g, '""');
+        const message = (item.message || '').replace(/"/g, '""');
+        const time = formatTime(item.createdAt || item.created_at);
+        csvContent += `"${i + 1}","${name}","${item.attending ? 'Sẽ đến' : 'Không đến'}","${item.attending ? item.guestCount || '' : ''}","${message}","${time}"\n`;
+      });
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `xac-nhan-tham-du-${new Date().toISOString().slice(0,10)}.csv`;
+      link.click();
+      URL.revokeObjectURL(link.href);
+      showToast('Đã xuất file CSV thành công');
+    });
   </script>
 </body>
 </html>

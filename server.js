@@ -17,6 +17,36 @@ try {
   comments = [];
 }
 let pendingSave = Promise.resolve();
+const rsvpsFile = path.join(dataDirectory, 'rsvps.json');
+let rsvps;
+try {
+  rsvps = JSON.parse(await readFile(rsvpsFile, 'utf8'));
+} catch (error) {
+  if (error.code !== 'ENOENT') throw error;
+  rsvps = [];
+}
+let pendingRsvpSave = Promise.resolve();
+function adminPin(request) {
+  return request.headers['x-admin-pin'] ||
+    (request.headers['authorization']?.startsWith('Bearer ') ? request.headers['authorization'].slice(7) : '');
+}
+function parseRsvp(body) {
+  const name = typeof body?.name === 'string' ? body.name.trim() : '';
+  const attending = body?.attending;
+  const message = typeof body?.message === 'string' ? body.message.trim() : '';
+  if (!name || name.length > 200) throw Object.assign(new Error('Vui lòng nhập tên của bạn.'), { status: 400 });
+  if (attending !== true && attending !== false) throw Object.assign(new Error('Vui lòng cho biết bạn có đến được không.'), { status: 400 });
+  if (message.length > 1000) throw Object.assign(new Error('Lời nhắn hơi dài. Bạn rút ngắn giúp một chút nhé.'), { status: 400 });
+  let guestCount = null;
+  if (attending) {
+    const count = Number(body?.guestCount ?? 1);
+    if (!Number.isInteger(count) || count < 1 || count > 30) {
+      throw Object.assign(new Error('Số lượng khách cần từ 1 đến 30 người.'), { status: 400 });
+    }
+    guestCount = count;
+  }
+  return { id: randomUUID(), name, attending, guestCount, message, createdAt: new Date().toISOString() };
+}
 const contentTypes = {
   '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8',
   '.js': 'text/javascript; charset=utf-8', '.jpg': 'image/jpeg',
@@ -41,6 +71,39 @@ async function readJson(request) {
 const server = http.createServer(async (request, response) => {
   try {
     const url = new URL(request.url, 'http://localhost');
+    if (url.pathname === '/api/rsvp') {
+      const expectedPin = process.env.ADMIN_PIN || '281126';
+      if (request.method === 'GET') {
+        if (adminPin(request) !== expectedPin) return json(response, 401, { error: 'Mã PIN quản trị không chính xác.' });
+        return json(response, 200, rsvps);
+      }
+      if (request.method === 'DELETE') {
+        if (adminPin(request) !== expectedPin) return json(response, 401, { error: 'Mã PIN quản trị không chính xác.' });
+        const id = url.searchParams.get('id');
+        if (!id) return json(response, 400, { error: 'Thiếu ID xác nhận cần xoá.' });
+        if (!rsvps.some(item => item.id === id)) return json(response, 404, { error: 'Không tìm thấy xác nhận.' });
+        const save = pendingRsvpSave.then(async () => {
+          const updated = rsvps.filter(item => item.id !== id);
+          await writeFile(rsvpsFile + '.tmp', JSON.stringify(updated, null, 2));
+          await rename(rsvpsFile + '.tmp', rsvpsFile);
+          rsvps = updated;
+        });
+        pendingRsvpSave = save.catch(() => {});
+        await save;
+        return json(response, 200, { success: true, id });
+      }
+      if (request.method !== 'POST') return json(response, 405, { error: 'Phương thức không được hỗ trợ.' });
+      const entry = parseRsvp(await readJson(request));
+      const save = pendingRsvpSave.then(async () => {
+        const updated = [entry, ...rsvps];
+        await writeFile(rsvpsFile + '.tmp', JSON.stringify(updated, null, 2));
+        await rename(rsvpsFile + '.tmp', rsvpsFile);
+        rsvps = updated;
+      });
+      pendingRsvpSave = save.catch(() => {});
+      await save;
+      return json(response, 201, entry);
+    }
     if (url.pathname === '/api/comments') {
       if (request.method === 'GET') return json(response, 200, comments);
       if (request.method === 'DELETE') {
