@@ -43,6 +43,27 @@ const server = http.createServer(async (request, response) => {
     const url = new URL(request.url, 'http://localhost');
     if (url.pathname === '/api/comments') {
       if (request.method === 'GET') return json(response, 200, comments);
+      if (request.method === 'DELETE') {
+        const pin = request.headers['x-admin-pin'] || 
+          (request.headers['authorization']?.startsWith('Bearer ') ? request.headers['authorization'].slice(7) : '');
+        const expectedPin = process.env.ADMIN_PIN || '281126';
+        if (!pin || pin !== expectedPin) {
+          return json(response, 401, { error: 'Mã PIN quản trị không chính xác.' });
+        }
+        const id = url.searchParams.get('id');
+        if (!id) return json(response, 400, { error: 'Thiếu ID lời chúc cần xoá.' });
+        const exists = comments.some(c => c.id === id);
+        if (!exists) return json(response, 404, { error: 'Không tìm thấy lời chúc.' });
+        const save = pendingSave.then(async () => {
+          const updated = comments.filter(c => c.id !== id);
+          await writeFile(commentsFile + '.tmp', JSON.stringify(updated, null, 2));
+          await rename(commentsFile + '.tmp', commentsFile);
+          comments = updated;
+        });
+        pendingSave = save.catch(() => {});
+        await save;
+        return json(response, 200, { success: true, id });
+      }
       if (request.method !== 'POST') return json(response, 405, { error: 'Phương thức không được hỗ trợ.' });
       const body = await readJson(request);
       const name = typeof body?.name === 'string' ? body.name.trim() : '';
@@ -65,7 +86,11 @@ const server = http.createServer(async (request, response) => {
       response.writeHead(405); return response.end();
     }
     const pathname = decodeURIComponent(url.pathname);
-    const requested = ['/', '/i/tangduy-hongnhung', '/i/tangduy-hongnhung/'].includes(pathname) ? 'index.html' : pathname.slice(1);
+    const requested = ['/', '/i/tangduy-hongnhung', '/i/tangduy-hongnhung/'].includes(pathname)
+      ? 'index.html'
+      : ['/admin', '/admin/'].includes(pathname)
+      ? 'admin.html'
+      : pathname.slice(1);
     const filename = path.resolve(publicRoot, requested);
     if (!filename.startsWith(publicRoot + path.sep)) {
       response.writeHead(403); return response.end('Forbidden');

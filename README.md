@@ -19,6 +19,20 @@ npm run dev
 # Hoặc khởi chạy production
 npm start
 ```
+## Triển khai Cloudflare Worker (qua Cloudflare CLI `cf`)
+
+Dự án đã được cấu hình sẵn cho CLI `cf` mới nhất của Cloudflare kèm cơ sở dữ liệu Edge D1 SQLite:
+
+```bash
+# Chạy máy chủ mô phỏng Edge cục bộ với D1 & Static Assets
+npm run cf:dev
+# (Truy cập tại http://127.0.0.1:8787)
+
+# Triển khai lên Cloudflare production
+npm run deploy
+# hoặc: cf deploy
+```
+
 
 Truy cập trang tại: [http://localhost:3000](http://localhost:3000)
 
@@ -44,6 +58,7 @@ duy-nhung-wedding/
 │   ├── animations.css         # Keyframe hoạt hoạ bung hoa, bay lá, lắc hộp quà
 │   ├── app.css                # Tinh chỉnh giao diện, lớp responsive, trạng thái nhạc
 │   ├── app.js                 # Xử lý tương tác: mở thiệp, album 3D, lightbox, nhạc, sổ lưu bút
+│   ├── admin.html             # Trang quản trị sổ lưu bút (xem, tìm kiếm, xuất CSV, xoá lời chúc)
 │   ├── index.html             # Khung DOM đầy đủ của thiệp cưới
 │   └── reference.css          # Hệ thống utility CSS Tailwind/DaisyUI thu gọn
 ├── .gitignore
@@ -75,3 +90,10 @@ duy-nhung-wedding/
    - Form gửi lời chúc lưu bền vững vào file `data/comments.json` qua cơ chế ghi nguyên tử (atomic write).
    - Nút ma thuật 🪄 mở hộp gợi ý lời chúc có sẵn.
    - Hộp quà hiệu ứng 3D khi hover; mở popup hiển thị thông tin ngân hàng và mã QR thanh toán (Techcombank 1838399999 - TANG DINH DUY), có nút tải ảnh QR về máy.
+
+5. **Trang quản trị Sổ Lưu Bút (`/admin`)**:
+   - Đường dẫn: `/admin` (hoặc `/admin.html`).
+   - Bảo vệ bằng mã PIN (mặc định: `281126` - ngày cưới, cấu hình được qua biến môi trường `ADMIN_PIN`).
+   - Thống kê số lượng lời chúc, tìm kiếm tức thì theo tên hoặc nội dung.
+   - Nút **Xuất file CSV** (tương thích font tiếng Việt UTF-8 BOM cho Microsoft Excel).
+   - Xoá lời chúc rác / spam với hộp thoại xác nhận an toàn.

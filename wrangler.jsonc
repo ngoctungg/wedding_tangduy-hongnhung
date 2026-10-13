@@ -1,0 +1,17 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "wedding",
+  "main": "src/worker.js",
+  "compatibility_date": "2024-09-23",
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "wedding-db",
+      "database_id": "493ea65f-2daf-422a-9d3a-b3744be0cb88"
+    }
+  ]
+}

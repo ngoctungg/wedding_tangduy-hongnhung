@@ -3,9 +3,17 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "engines": { "node": ">=22" },
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "dev": "node server.js",
+    "cf:dev": "cf dev",
+    "deploy": "cf deploy",
     "start": "node server.js"
+  },
+  "devDependencies": {
+    "cf": "^1.0.0-beta.14",
+    "wrangler": "^4.149.0"
   }
 }

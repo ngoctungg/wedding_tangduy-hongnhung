@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Quản trị Sổ Lưu Bút | Đình Duy &amp; Hồng Nhung</title>
+  <link rel="icon" href="/favicon.ico" type="image/x-icon">
+  <style>
+    :root {
+      --primary: #30530f;
+      --primary-light: #446f18;
+      --bg: #f9f6f0;
+      --card-bg: #ffffff;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --border: #e5e7eb;
+      --danger: #dc2626;
+      --danger-hover: #b91c1c;
+      --radius: 12px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      padding: 16px;
+    }
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+    header {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      padding: 16px 20px;
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      margin-bottom: 20px;
+      border: 1px solid var(--border);
+    }
+    .header-title h1 {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--primary);
+    }
+    .header-title p {
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .header-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      font-size: 13px;
+      font-weight: 600;
+      border-radius: 8px;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.15s ease;
+      border: 1px solid transparent;
+    }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-primary:hover { background: var(--primary-light); }
+    .btn-outline { background: #fff; border-color: var(--border); color: var(--text); }
+    .btn-outline:hover { background: #f3f4f6; }
+    .btn-danger { background: #fee2e2; color: var(--danger); border-color: #fecaca; }
+    .btn-danger:hover { background: var(--danger); color: #fff; }
+    .btn-sm { padding: 4px 8px; font-size: 12px; }
+
+    /* Login Card */
+    #login-section {
+      max-width: 400px;
+      margin: 60px auto;
+      background: var(--card-bg);
+      padding: 32px 24px;
+      border-radius: var(--radius);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+      text-align: center;
+      border: 1px solid var(--border);
+    }
+    #login-section h2 {
+      font-size: 20px;
+      color: var(--primary);
+      margin-bottom: 8px;
+    }
+    #login-section p {
+      font-size: 14px;
+      color: var(--muted);
+      margin-bottom: 20px;
+    }
+    .form-group {
+      margin-bottom: 16px;
+      text-align: left;
+    }
+    .form-group label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+    input[type="password"], input[type="text"] {
+      width: 100%;
+      padding: 10px 14px;
+      font-size: 14px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    input[type="password"]:focus, input[type="text"]:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(48,83,15,0.1);
+    }
+
+    /* Main Dashboard */
+    #dashboard-section { display: none; }
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .search-box {
+      flex: 1;
+      min-width: 240px;
+      max-width: 400px;
+    }
+    .stats-badge {
+      background: rgba(48,83,15,0.08);
+      color: var(--primary);
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    /* Table & Cards */
+    .table-container {
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      overflow: hidden;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+    th {
+      background: #f9fafb;
+      padding: 12px 16px;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      border-bottom: 1px solid var(--border);
+    }
+    td {
+      padding: 14px 16px;
+      font-size: 14px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background-color: #fafbf9; }
+    .col-author { font-weight: 600; color: var(--primary); white-space: nowrap; width: 180px; }
+    .col-message { white-space: pre-wrap; word-break: break-word; }
+    .col-time { color: var(--muted); font-size: 12px; white-space: nowrap; width: 140px; }
+    .col-actions { text-align: right; width: 80px; }
+
+    .empty-state {
+      padding: 48px 16px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    /* Modal dialog */
+    dialog {
+      margin: auto;
+      border: none;
+      border-radius: var(--radius);
+      padding: 24px;
+      max-width: 380px;
+      box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04);
+    }
+    dialog::backdrop { background: rgba(0,0,0,0.4); backdrop-filter: blur(2px); }
+    dialog h3 { font-size: 16px; margin-bottom: 8px; color: var(--text); }
+    dialog p { font-size: 14px; color: var(--muted); margin-bottom: 20px; }
+    .modal-actions { display: flex; justify-content: flex-end; gap: 8px; }
+
+    /* Alert / Toast */
+    #toast {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: #1f2937;
+      color: #fff;
+      padding: 10px 18px;
+      border-radius: 8px;
+      font-size: 13px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      z-index: 1000;
+      display: none;
+      animation: fadeIn 0.2s ease;
+    }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+    @media (max-width: 640px) {
+      body { padding: 10px; }
+      header { padding: 12px 14px; }
+      th, td { padding: 10px 12px; }
+      .col-author { width: auto; font-size: 13px; }
+      .col-time { width: auto; font-size: 11px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="header-title">
+        <h1>Quản trị Sổ Lưu Bút</h1>
+        <p>Đình Duy &amp; Hồng Nhung — 28/11/2026</p>
+      </div>
+      <div class="header-actions">
+        <a href="/" class="btn btn-outline">← Xem thiệp cưới</a>
+        <button id="btn-logout" class="btn btn-outline" style="display: none;">Đăng xuất</button>
+      </div>
+    </header>
+
+    <!-- Login -->
+    <div id="login-section">
+      <h2>Xác thực quyền quản trị</h2>
+      <p>Vui lòng nhập mã PIN quản trị để xem và quản lý danh sách lời chúc.</p>
+      <form id="login-form">
+        <div class="form-group">
+          <label for="admin-pin">Mã PIN quản trị</label>
+          <input type="password" id="admin-pin" placeholder="Nhập mã PIN (mặc định: 281126)" required autofocus autocomplete="current-password">
+        </div>
+        <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center; padding: 10px;">Xác nhận</button>
+      </form>
+    </div>
+
+    <!-- Dashboard -->
+    <div id="dashboard-section">
+      <div class="toolbar">
+        <div class="search-box">
+          <input type="text" id="search-input" placeholder="🔍 Tìm theo tên hoặc nội dung lời chúc...">
+        </div>
+        <div style="display: flex; gap: 8px; align-items: center;">
+          <span class="stats-badge" id="stats-count">0 lời chúc</span>
+          <button id="btn-export-csv" class="btn btn-outline">📥 Xuất CSV</button>
+          <button id="btn-refresh" class="btn btn-outline">🔄 Làm mới</button>
+        </div>
+      </div>
+
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 40px; text-align: center;">#</th>
+              <th>Người gửi</th>
+              <th>Lời chúc</th>
+              <th>Thời gian</th>
+              <th style="text-align: right;">Xoá</th>
+            </tr>
+          </thead>
+          <tbody id="comments-body">
+            <tr>
+              <td colspan="5" class="empty-state">Đang tải dữ liệu...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete Confirmation Modal -->
+  <dialog id="delete-modal">
+    <h3>Xác nhận xoá lời chúc</h3>
+    <p>Bạn có chắc chắn muốn xoá lời chúc của <strong id="delete-author"></strong> không? Hành động này không thể hoàn tác.</p>
+    <div class="modal-actions">
+      <button id="btn-cancel-delete" class="btn btn-outline">Huỷ</button>
+      <button id="btn-confirm-delete" class="btn btn-danger">Xoá vĩnh viễn</button>
+    </div>
+  </dialog>
+
+  <div id="toast"></div>
+
+  <script>
+    let commentsList = [];
+    let deleteTargetId = null;
+
+    const loginSection = document.getElementById('login-section');
+    const dashboardSection = document.getElementById('dashboard-section');
+    const loginForm = document.getElementById('login-form');
+    const adminPinInput = document.getElementById('admin-pin');
+    const btnLogout = document.getElementById('btn-logout');
+    const btnRefresh = document.getElementById('btn-refresh');
+    const btnExportCsv = document.getElementById('btn-export-csv');
+    const searchInput = document.getElementById('search-input');
+    const commentsBody = document.getElementById('comments-body');
+    const statsCount = document.getElementById('stats-count');
+    const deleteModal = document.getElementById('delete-modal');
+    const deleteAuthor = document.getElementById('delete-author');
+    const btnConfirmDelete = document.getElementById('btn-confirm-delete');
+    const btnCancelDelete = document.getElementById('btn-cancel-delete');
+    const toast = document.getElementById('toast');
+
+    function showToast(msg) {
+      toast.textContent = msg;
+      toast.style.display = 'block';
+      setTimeout(() => { toast.style.display = 'none'; }, 3000);
+    }
+
+    function getPin() {
+      return sessionStorage.getItem('wedding_admin_pin') || '';
+    }
+
+    function setPin(pin) {
+      sessionStorage.setItem('wedding_admin_pin', pin);
+    }
+
+    function clearPin() {
+      sessionStorage.removeItem('wedding_admin_pin');
+    }
+
+    function formatTime(isoString) {
+      try {
+        const d = new Date(isoString);
+        return d.toLocaleString('vi-VN', {
+          hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric'
+        });
+      } catch {
+        return isoString || '';
+      }
+    }
+
+    async function fetchComments() {
+      try {
+        const res = await fetch('/api/comments');
+        if (!res.ok) throw new Error('Không thể lấy danh sách lời chúc');
+        commentsList = await res.json();
+        renderTable();
+      } catch (err) {
+        showToast(err.message);
+      }
+    }
+
+    function renderTable() {
+      const q = (searchInput.value || '').toLowerCase().trim();
+      const filtered = commentsList.filter(item => 
+        (item.name || '').toLowerCase().includes(q) ||
+        (item.message || '').toLowerCase().includes(q)
+      );
+
+      statsCount.textContent = `${filtered.length} / ${commentsList.length} lời chúc`;
+
+      if (filtered.length === 0) {
+        commentsBody.innerHTML = `<tr><td colspan="5" class="empty-state">${q ? 'Không tìm thấy lời chúc nào khớp với tìm kiếm.' : 'Chưa có lời chúc nào trong sổ lưu bút.'}</td></tr>`;
+        return;
+      }
+
+      commentsBody.innerHTML = filtered.map((c, index) => `
+        <tr>
+          <td style="text-align: center; color: var(--muted); font-size: 12px;">${index + 1}</td>
+          <td class="col-author">${escapeHtml(c.name)}</td>
+          <td class="col-message">${escapeHtml(c.message)}</td>
+          <td class="col-time">${formatTime(c.createdAt || c.created_at)}</td>
+          <td class="col-actions">
+            <button class="btn btn-danger btn-sm" onclick="openDeleteModal('${c.id}', '${escapeAttr(c.name)}')">Xoá</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function escapeHtml(str) {
+      return String(str || '').replace(/[&<>"']/g, s => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      }[s]));
+    }
+
+    function escapeAttr(str) {
+      return String(str || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+    }
+
+    window.openDeleteModal = function(id, author) {
+      deleteTargetId = id;
+      deleteAuthor.textContent = author;
+      deleteModal.showModal();
+    };
+
+    btnCancelDelete.addEventListener('click', () => {
+      deleteModal.close();
+      deleteTargetId = null;
+    });
+
+    btnConfirmDelete.addEventListener('click', async () => {
+      if (!deleteTargetId) return;
+      btnConfirmDelete.disabled = true;
+      try {
+        const pin = getPin();
+        const res = await fetch(`/api/comments?id=${encodeURIComponent(deleteTargetId)}`, {
+          method: 'DELETE',
+          headers: {
+            'x-admin-pin': pin,
+            'Authorization': `Bearer ${pin}`
+          }
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Xoá thất bại');
+
+        commentsList = commentsList.filter(x => x.id !== deleteTargetId);
+        renderTable();
+        showToast('Đã xoá lời chúc thành công');
+        deleteModal.close();
+      } catch (err) {
+        showToast(err.message);
+      } finally {
+        btnConfirmDelete.disabled = false;
+        deleteTargetId = null;
+      }
+    });
+
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const pin = adminPinInput.value.trim();
+      if (!pin) return;
+
+      setPin(pin);
+      loginSection.style.display = 'none';
+      dashboardSection.style.display = 'block';
+      btnLogout.style.display = 'inline-flex';
+      await fetchComments();
+    });
+
+    btnLogout.addEventListener('click', () => {
+      clearPin();
+      dashboardSection.style.display = 'none';
+      btnLogout.style.display = 'none';
+      loginSection.style.display = 'block';
+      adminPinInput.value = '';
+      adminPinInput.focus();
+    });
+
+    btnRefresh.addEventListener('click', () => {
+      fetchComments();
+      showToast('Đã cập nhật danh sách');
+    });
+
+    searchInput.addEventListener('input', () => {
+      renderTable();
+    });
+
+    btnExportCsv.addEventListener('click', () => {
+      if (commentsList.length === 0) {
+        showToast('Không có dữ liệu để xuất');
+        return;
+      }
+      let csvContent = '\uFEFF"STT","Họ tên","Lời chúc","Thời gian"\n';
+      commentsList.forEach((c, i) => {
+        const name = (c.name || '').replace(/"/g, '""');
+        const msg = (c.message || '').replace(/"/g, '""');
+        const time = formatTime(c.createdAt || c.created_at);
+        csvContent += `"${i + 1}","${name}","${msg}","${time}"\n`;
+      });
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `so-luu-but-dinh-duy-hong-nhung-${new Date().toISOString().slice(0,10)}.csv`;
+      link.click();
+      URL.revokeObjectURL(link.href);
+      showToast('Đã xuất file CSV thành công');
+    });
+
+    // Auto login if PIN in session
+    if (getPin()) {
+      loginSection.style.display = 'none';
+      dashboardSection.style.display = 'block';
+      btnLogout.style.display = 'inline-flex';
+      fetchComments();
+    }
+  </script>
+</body>
+</html>
