@@ -390,7 +390,8 @@ h1, h2, h3, h4, h5, h6 { font-family: "Gotham",var(--font-montserrat),"Montserra
 .text-sm { font-size: var(--text-sm); line-height: var(--tw-leading,var(--text-sm--line-height)); }
 .text-xl { font-size: var(--text-xl); line-height: var(--tw-leading,var(--text-xl--line-height)); }
 .text-xs { font-size: var(--text-xs); line-height: var(--tw-leading,var(--text-xs--line-height)); }
-.text-\[10px\] { font-size: 10px; }
+.text-\[10px\]{font-size:10px}
+.text-\[9px\]{font-size:9px}
 .text-\[11px\] { font-size: 11px; }
 .text-\[12px\] { font-size: 12px; }
 .text-\[13px\] { font-size: 13px; }

@@ -100,7 +100,7 @@ function startEnvelopeEffects() {
 }
 
 function burstEnvelopeLeaves() {
-  const colors = ['#8bc34a', '#6B8040', '#a5c862', '#c8dfa0'];
+  const colors = ['#931434', '#b86a7e', '#913b51', '#f3dfc3'];
   const burst = document.createElement('div');
   burst.className = 'envelope-burst';
   burst.setAttribute('aria-hidden', 'true');
@@ -268,6 +268,7 @@ setInterval(updateCountdown, 1000);
 
 const gallery = $('#gallery');
 const photos = [...gallery.children];
+const dots = [...document.querySelectorAll('[aria-label^="Go to photo"]')];
 const lightbox = $('#lightbox');
 const lightboxImage = $('#lightbox-image');
 const thumbnails = [...lightbox.querySelectorAll('[aria-label^="View image"]')];
@@ -286,6 +287,11 @@ function renderGallery() {
     photo.setAttribute('aria-current', String(distance === 0));
   });
   $('#gallery-counter').textContent = `${currentPhoto + 1} / ${photos.length}`;
+  for (const [index, dot] of dots.entries()) {
+    const active = index === currentPhoto;
+    dot.style.width = active ? '1.5rem' : '0.5rem';
+    dot.style.opacity = active ? '0.7' : '0.25';
+  }
 }
 function changePhoto(delta) {
   currentPhoto = (currentPhoto + delta + photos.length) % photos.length;
@@ -312,6 +318,11 @@ photos.forEach((photo, index) => {
     if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); selectPhoto(); }
   });
 });
+dots.forEach((dot, index) => dot.addEventListener('click', () => {
+  currentPhoto = index;
+  renderGallery();
+  autoAdvanceAt = Date.now() + 4500;
+}));
 let swipeStart;
 let suppressGalleryClick = false;
 gallery.parentElement.addEventListener('pointerdown', event => { swipeStart = event.clientX; });
@@ -344,7 +355,7 @@ function renderLightbox() {
   thumbnails.forEach((button, index) => {
     button.setAttribute('aria-current', String(index === currentPhoto));
     button.style.opacity = index === currentPhoto ? 1 : .6;
-    button.style.outline = index === currentPhoto ? '2px solid #30530f' : '';
+    button.style.outline = index === currentPhoto ? '2px solid #931434' : '';
     button.style.outlineOffset = '2px';
     button.classList.toggle('scale-105', index === currentPhoto);
   });
